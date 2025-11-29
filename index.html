@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BlueBeige Flowers — доставка цветов</title>
+  <meta name="description" content="Стильный цветочный магазин: каталог букетов, онлайн-заказ, пункты на карте, отзывы. Доставка день в день." />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <!-- Fonts (modern, narrow-ish) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Unbounded:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Leaflet (online map) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <style>
+    :root{
+      --beige: #EFE2CF;
+      --beige-2:#F6EDE0;
+      --ink: #0B1220;
+      --blue: #2458FF;
+      --blue-2:#1D4ED8;
+      --navy:#08142F;
+      --line: rgba(8, 20, 47, 0.12);
+      --glass: rgba(255,255,255,0.62);
+      --shadow: 0 18px 60px rgba(8, 20, 47, 0.18);
+      --shadow-soft: 0 10px 40px rgba(8, 20, 47, 0.12);
+      --radius: 22px;
+    }
+
+    html{scroll-behavior:smooth;}
+    body{font-family: Manrope, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, "Noto Sans", "Liberation Sans", sans-serif; color: var(--ink);}
+    .display{font-family: Unbounded, Manrope, system-ui, sans-serif; letter-spacing: -0.02em;}
+
+    /* Subtle floral pattern (SVG), inspired by playful patterned backgrounds but restrained */
+    .pattern-bg{
+      background:
+        radial-gradient(1200px 800px at 10% 15%, rgba(36, 88, 255, 0.18), rgba(36, 88, 255, 0) 55%),
+        radial-gradient(900px 700px at 90% 20%, rgba(36, 88, 255, 0.14), rgba(36, 88, 255, 0) 58%),
+        radial-gradient(900px 700px at 60% 95%, rgba(8, 20, 47, 0.10), rgba(8, 20, 47, 0) 55%),
+        radial-gradient(900px 700px at 15% 85%, rgba(239, 226, 207, 0.45), rgba(239, 226, 207, 0) 60%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%2308142F' stroke-opacity='0.06'%3E%3Cpath d='M68 48c10 20 0 40-20 50 20 10 30 30 20 50-10-20 0-40 20-50-20-10-30-30-20-50Z'/%3E%3Cpath d='M178 58c8 16 0 32-16 40 16 8 24 24 16 40-8-16 0-32 16-40-16-8-24-24-16-40Z'/%3E%3Cpath d='M120 130c10 20 0 40-20 50 20 10 30 30 20 50-10-20 0-40 20-50-20-10-30-30-20-50Z'/%3E%3Cpath d='M52 180c6 12 0 24-12 30 12 6 18 18 12 30-6-12 0-24 12-30-12-6-18-18-12-30Z'/%3E%3Cpath d='M204 168c6 12 0 24-12 30 12 6 18 18 12 30-6-12 0-24 12-30-12-6-18-18-12-30Z'/%3E%3C/g%3E%3Cg fill='%232458FF' fill-opacity='0.07'%3E%3Ccircle cx='72' cy='78' r='4'/%3E%3Ccircle cx='184' cy='92' r='3'/%3E%3Ccircle cx='130' cy='170' r='4'/%3E%3Ccircle cx='58' cy='210' r='3'/%3E%3Ccircle cx='204' cy='208' r='3'/%3E%3C/g%3E%3C/svg%3E");
+      background-size: auto, auto, auto, auto, 240px 240px;
+      background-color: var(--beige);
+    }
+
+    .glass{background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.45);}
+    .card{border-radius: var(--radius); box-shadow: var(--shadow-soft); border: 1px solid rgba(8,20,47,0.10); background: rgba(246, 237, 224, 0.86);}
+    .card-white{border-radius: var(--radius); box-shadow: var(--shadow-soft); border: 1px solid rgba(8,20,47,0.10); background: rgba(255,255,255,0.72);}
+    .pill{border-radius: 999px; border: 1px solid rgba(8,20,47,0.12); background: rgba(255,255,255,0.65);}
+
+    .btn{
+      border-radius: 999px;
+      padding: 0.9rem 1.1rem;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+      box-shadow: 0 10px 24px rgba(36,88,255,0.25);
+    }
+    .btn:hover{transform: translateY(-1px); box-shadow: 0 16px 34px rgba(36,88,255,0.28);} 
+    .btn:active{transform: translateY(0px); box-shadow: 0 8px 18px rgba(36,88,255,0.22);} 
+    .btn-primary{background: linear-gradient(135deg, var(--blue), var(--blue-2)); color: #fff; border: 1px solid rgba(255,255,255,0.22);} 
+    .btn-ghost{background: rgba(255,255,255,0.6); color: var(--navy); border: 1px solid rgba(8,20,47,0.12); box-shadow: 0 10px 24px rgba(8,20,47,0.10);} 
+    .btn-ghost:hover{box-shadow: 0 16px 34px rgba(8,20,47,0.12);} 
+
+    .navlink{position: relative;}
+    .navlink::after{
+      content: "";
+      position: absolute;
+      left: 0; bottom: -8px;
+      height: 2px;
+      width: 0%;
+      background: linear-gradient(90deg, var(--blue), rgba(36,88,255,0));
+      transition: width .18s ease;
+    }
+    .navlink[aria-current="page"]::after{width: 100%;}
+
+    .focus-ring:focus{outline: none; box-shadow: 0 0 0 5px rgba(36,88,255,0.18);} 
+
+    /* Leaflet rounding */
+    #map{border-radius: var(--radius); overflow: hidden;}
+    .leaflet-control-zoom a{border-radius: 10px !important;}
+
+    /* Page transitions */
+    .page{display:none;}
+    .page.active{display:block;}
+
+    /* Hide number input spinners (if any later) */
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      html{scroll-behavior:auto;}
+      .btn{transition:none;}
+      .navlink::after{transition:none;}
+    }
+  </style>
+</head>
+<body class="pattern-bg min-h-screen">
+  <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:ring-2 focus:ring-blue-500 bg-white/90 px-4 py-2 rounded-full">Перейти к содержимому</a>
+
+  <!-- Top bar -->
+  <header class="sticky top-0 z-40">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
+      <div class="glass rounded-[26px] shadow-[0_18px_60px_rgba(8,20,47,0.16)]">
+        <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+          <div class="flex items-center gap-3">
+            <button id="menuBtn" class="md:hidden btn-ghost btn px-3 py-2 focus-ring" aria-label="Открыть меню">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 7H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 17H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+            <a href="#/" class="flex items-center gap-2" data-link>
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_16px_40px_rgba(36,88,255,0.28)]">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21s-7-4.35-9.5-8.5C.27 8.9 2.6 5.5 6.35 5.5c2.01 0 3.51 1.05 4.65 2.52C12.14 6.55 13.64 5.5 15.65 5.5c3.75 0 6.08 3.4 3.85 7C19 16.65 12 21 12 21Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.2 13.2c2.4-1.2 4.8-3.1 7.1-5.9" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </span>
+              <div class="leading-tight">
+                <div class="display text-[14px] sm:text-[15px]">BlueBeige</div>
+                <div class="text-[12px] opacity-70 -mt-0.5">flowers · доставка</div>
+              </div>
+            </a>
+          </div>
+
+          <nav class="hidden md:flex items-center gap-6 text-[14px]">
+            <a class="navlink hover:opacity-80" href="#/" data-route="home" data-link>Главная</a>
+            <a class="navlink hover:opacity-80" href="#/catalog" data-route="catalog" data-link>Каталог</a>
+            <a class="navlink hover:opacity-80" href="#/order" data-route="order" data-link>Заказать</a>
+            <a class="navlink hover:opacity-80" href="#/map" data-route="map" data-link>Пункты на карте</a>
+            <a class="navlink hover:opacity-80" href="#/reviews" data-route="reviews" data-link>Отзывы</a>
+          </nav>
+
+          <div class="hidden sm:flex items-center gap-2">
+            <a class="pill px-4 py-2 text-[13px] font-semibold text-slate-900/90 hover:bg-white/75 focus-ring" href="tel:+79991234567" id="phoneTop">+7 (999) 123‑45‑67</a>
+            <a class="btn btn-primary focus-ring" href="#/order" data-link>
+              Заказать
+            </a>
+          </div>
+
+          <div class="sm:hidden flex items-center gap-2">
+            <a class="btn btn-primary px-4 py-2 text-[13px] focus-ring" href="#/order" data-link>Заказать</a>
+          </div>
+        </div>
+
+        <!-- Mobile menu -->
+        <div id="mobileMenu" class="md:hidden hidden border-t border-white/40 px-4 py-3">
+          <div class="grid gap-2">
+            <a class="pill px-4 py-2 text-[14px] font-semibold" href="#/" data-link>Главная</a>
+            <a class="pill px-4 py-2 text-[14px] font-semibold" href="#/catalog" data-link>Каталог</a>
+            <a class="pill px-4 py-2 text-[14px] font-semibold" href="#/order" data-link>Заказать</a>
+            <a class="pill px-4 py-2 text-[14px] font-semibold" href="#/map" data-link>Пункты на карте</a>
+            <a class="pill px-4 py-2 text-[14px] font-semibold" href="#/reviews" data-link>Отзывы</a>
+            <a class="pill px-4 py-2 text-[14px] font-semibold" href="tel:+79991234567">Позвонить: +7 (999) 123‑45‑67</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-16">
+    <!-- HERO -->
+    <section id="page-home" class="page active" data-page="home">
+      <div class="grid lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+        <div class="lg:col-span-7">
+          <div class="card p-6 sm:p-8">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="pill px-3 py-1 text-[12px] font-semibold">Доставка день в день</span>
+              <span class="pill px-3 py-1 text-[12px] font-semibold">Фото перед отправкой</span>
+              <span class="pill px-3 py-1 text-[12px] font-semibold">Оплата онлайн</span>
+            </div>
+            <h1 class="display mt-5 text-[30px] sm:text-[42px] leading-[1.05] text-slate-950">
+              Цветы, которые выглядят как дизайн‑объект.
+            </h1>
+            <p class="mt-4 text-[15px] sm:text-[16px] leading-relaxed text-slate-900/80 max-w-2xl">
+              Современные букеты в бежево‑синей эстетике: чистые формы, спокойные сочетания, быстрый сервис.
+              Соберём и доставим за 2–3 часа по городу.
+            </p>
+
+            <div class="mt-6 flex flex-col sm:flex-row gap-3 sm:items-center">
+              <a class="btn btn-primary focus-ring inline-flex items-center justify-center gap-2" href="#/catalog" data-link>
+                <span>Открыть каталог</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12H19" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M13 6L19 12L13 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+              <a class="btn btn-ghost focus-ring inline-flex items-center justify-center gap-2" href="tel:+79991234567">
+                <span>Позвонить</span>
+                <span class="text-slate-900/70 font-semibold">+7 (999) 123‑45‑67</span>
+              </a>
+            </div>
+
+            <div class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="card-white p-4">
+                <div class="text-[12px] text-slate-900/60">Средняя оценка</div>
+                <div class="mt-1 display text-[18px]">4.9/5</div>
+              </div>
+              <div class="card-white p-4">
+                <div class="text-[12px] text-slate-900/60">Доставка</div>
+                <div class="mt-1 display text-[18px]">2–3 ч</div>
+              </div>
+              <div class="card-white p-4">
+                <div class="text-[12px] text-slate-900/60">Сборка</div>
+                <div class="mt-1 display text-[18px]">в день заказа</div>
+              </div>
+              <div class="card-white p-4">
+                <div class="text-[12px] text-slate-900/60">Оплата</div>
+                <div class="mt-1 display text-[18px]">онлайн</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5">
+          <div class="card-white p-5 sm:p-6 h-full">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[12px] font-semibold text-slate-900/60">Букет недели</div>
+                <div class="display mt-1 text-[20px] sm:text-[22px]">"Blue Whisper"</div>
+              </div>
+              <span class="pill px-3 py-1 text-[12px] font-semibold">-10% сегодня</span>
+            </div>
+
+            <div class="mt-4 rounded-[18px] overflow-hidden border border-slate-900/10 shadow-[0_18px_60px_rgba(8,20,47,0.14)]">
+              <img class="w-full h-[260px] sm:h-[320px] object-cover" alt="Букет Blue Whisper" src="https://images.unsplash.com/photo-1526045478516-99145907023c?auto=format&fit=crop&w=1400&q=80" />
+            </div>
+
+            <div class="mt-4 flex items-center justify-between gap-3">
+              <div>
+                <div class="text-[12px] text-slate-900/60">Цена</div>
+                <div class="display text-[22px]">3 490 ₽</div>
+              </div>
+              <a class="btn btn-primary focus-ring" href="#/order" data-link data-prefill="blue-whisper">Заказать</a>
+            </div>
+
+            <div class="mt-4 grid grid-cols-2 gap-3">
+              <div class="pill px-4 py-3">
+                <div class="text-[12px] text-slate-900/60">Состав</div>
+                <div class="text-[13px] font-semibold">Роза, ранункулюс</div>
+              </div>
+              <div class="pill px-4 py-3">
+                <div class="text-[12px] text-slate-900/60">Повод</div>
+                <div class="text-[13px] font-semibold">Свидание / День рождения</div>
+              </div>
+            </div>
+
+            <div class="mt-4 text-[13px] text-slate-900/70">
+              Хотите как на референсе: чисто, красиво и «дорого»? Мы отправим фото готового букета перед доставкой.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 grid lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-8">
+          <div class="card-white p-6">
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="display text-[18px] sm:text-[20px]">Популярные букеты</h2>
+              <a class="text-[13px] font-semibold text-blue-700 hover:text-blue-800" href="#/catalog" data-link>Смотреть всё →</a>
+            </div>
+            <div id="homePopular" class="mt-4 grid sm:grid-cols-3 gap-4"></div>
+          </div>
+        </div>
+        <div class="lg:col-span-4">
+          <div class="card p-6">
+            <h3 class="display text-[18px]">Как мы работаем</h3>
+            <ol class="mt-4 grid gap-3">
+              <li class="card-white p-4">
+                <div class="text-[12px] text-slate-900/60">01</div>
+                <div class="font-semibold mt-1">Выбираете букет</div>
+                <div class="text-[13px] text-slate-900/70 mt-1">Каталог или сборка «под повод».</div>
+              </li>
+              <li class="card-white p-4">
+                <div class="text-[12px] text-slate-900/60">02</div>
+                <div class="font-semibold mt-1">Оформляете заказ</div>
+                <div class="text-[13px] text-slate-900/70 mt-1">Адрес, дата, открытка, пожелания.</div>
+              </li>
+              <li class="card-white p-4">
+                <div class="text-[12px] text-slate-900/60">03</div>
+                <div class="font-semibold mt-1">Получаете фото</div>
+                <div class="text-[13px] text-slate-900/70 mt-1">Подтверждаете — и мы везём.</div>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CATALOG -->
+    <section id="page-catalog" class="page" data-page="catalog">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div>
+          <h1 class="display text-[28px] sm:text-[36px]">Каталог</h1>
+          <p class="mt-2 text-slate-900/70 max-w-2xl">Подберите настроение: нежные нюды, графичные синие акценты, моно‑букеты и подарочные сеты.</p>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <label class="pill px-4 py-2 flex items-center gap-2">
+            <span class="text-[12px] font-semibold text-slate-900/60">Поиск</span>
+            <input id="searchInput" class="bg-transparent outline-none text-[14px] w-[220px]" placeholder="розы, синий, набор…" />
+          </label>
+          <label class="pill px-4 py-2 flex items-center gap-2">
+            <span class="text-[12px] font-semibold text-slate-900/60">Фильтр</span>
+            <select id="tagFilter" class="bg-transparent outline-none text-[14px]">
+              <option value="all">Все</option>
+              <option value="nude">Нюд</option>
+              <option value="blue">Синий акцент</option>
+              <option value="roses">Розы</option>
+              <option value="gift">Подарок</option>
+              <option value="wedding">Свадьба</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div id="catalogGrid" class="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+
+      <div class="mt-8 card-white p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="display text-[18px]">Нужна индивидуальная сборка?</div>
+            <div class="mt-1 text-[13px] text-slate-900/70">Напишите пожелания — мы предложим 2–3 варианта в вашем бюджете.</div>
+          </div>
+          <a class="btn btn-primary focus-ring" href="#/order" data-link>Собрать под заказ</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ORDER -->
+    <section id="page-order" class="page" data-page="order">
+      <div class="grid lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7">
+          <div class="card p-6 sm:p-8">
+            <h1 class="display text-[28px] sm:text-[36px]">Оформить заказ</h1>
+            <p class="mt-2 text-slate-900/70 max-w-2xl">Заполните форму — мы подтвердим сборку и время доставки. Если удобнее, звоните: <a class="font-semibold text-blue-700 hover:text-blue-800" href="tel:+79991234567">+7 (999) 123‑45‑67</a>.</p>
+
+            <form id="orderForm" class="mt-6 grid sm:grid-cols-2 gap-4">
+              <label class="sm:col-span-2">
+                <div class="text-[12px] font-semibold text-slate-900/60">Букет</div>
+                <select id="bouquetSelect" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring">
+                  <option value="">Выберите из каталога…</option>
+                </select>
+              </label>
+
+              <label>
+                <div class="text-[12px] font-semibold text-slate-900/60">Ваше имя</div>
+                <input required id="customerName" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring" placeholder="Например, Анна" />
+              </label>
+
+              <label>
+                <div class="text-[12px] font-semibold text-slate-900/60">Телефон</div>
+                <input required id="customerPhone" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring" placeholder="+7 (___) ___‑__‑__" inputmode="tel" />
+              </label>
+
+              <label class="sm:col-span-2">
+                <div class="text-[12px] font-semibold text-slate-900/60">Адрес доставки</div>
+                <input required id="deliveryAddress" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring" placeholder="Улица, дом, подъезд, квартира" />
+              </label>
+
+              <label>
+                <div class="text-[12px] font-semibold text-slate-900/60">Дата</div>
+                <input required id="deliveryDate" type="date" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring" />
+              </label>
+
+              <label>
+                <div class="text-[12px] font-semibold text-slate-900/60">Время</div>
+                <input required id="deliveryTime" type="time" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring" value="18:00" />
+              </label>
+
+              <label class="sm:col-span-2">
+                <div class="text-[12px] font-semibold text-slate-900/60">Текст открытки (по желанию)</div>
+                <input id="cardText" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring" placeholder="Например: С днём рождения!" />
+              </label>
+
+              <label class="sm:col-span-2">
+                <div class="text-[12px] font-semibold text-slate-900/60">Комментарий флористу</div>
+                <textarea id="commentText" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring" rows="4" placeholder="Цвета, упаковка, аллергии…"></textarea>
+              </label>
+
+              <div class="sm:col-span-2 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                <div class="card-white px-4 py-3">
+                  <div class="text-[12px] text-slate-900/60">Итого</div>
+                  <div class="display text-[20px]" id="orderTotal">—</div>
+                  <div class="text-[12px] text-slate-900/60 mt-1">Доставка по городу от 290 ₽</div>
+                </div>
+                <div class="flex gap-3">
+                  <button type="button" id="copyOrderBtn" class="btn btn-ghost focus-ring">Скопировать заказ</button>
+                  <button type="submit" class="btn btn-primary focus-ring">Отправить</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5">
+          <div class="card-white p-6">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-[12px] font-semibold text-slate-900/60">Подсказка</div>
+                <div class="display mt-1 text-[18px]">Визуально как на референсе</div>
+              </div>
+              <span class="pill px-3 py-1 text-[12px] font-semibold">контроль качества</span>
+            </div>
+            <p class="mt-3 text-[13px] text-slate-900/70">Мы подберём цветы по оттенку, а упаковку сделаем минималистичной — чтобы букет выглядел современно и «дорого».</p>
+
+            <div id="orderPreview" class="mt-4 rounded-[18px] overflow-hidden border border-slate-900/10">
+              <img id="orderPreviewImg" class="w-full h-[280px] object-cover" alt="Превью букета" src="https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=1400&q=80" />
+            </div>
+
+            <div class="mt-4 grid gap-3">
+              <div class="pill px-4 py-3">
+                <div class="text-[12px] text-slate-900/60">Связь</div>
+                <div class="font-semibold">Тел.: <a class="text-blue-700 hover:text-blue-800" href="tel:+79991234567">+7 (999) 123‑45‑67</a></div>
+              </div>
+              <div class="pill px-4 py-3">
+                <div class="text-[12px] text-slate-900/60">График</div>
+                <div class="font-semibold">Ежедневно 09:00–21:00</div>
+              </div>
+            </div>
+
+            <div id="toast" class="hidden mt-4 card-white px-4 py-3">
+              <div class="font-semibold">Готово</div>
+              <div class="text-[13px] text-slate-900/70" id="toastText">Текст</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAP -->
+    <section id="page-map" class="page" data-page="map">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div>
+          <h1 class="display text-[28px] sm:text-[36px]">Пункты на карте</h1>
+          <p class="mt-2 text-slate-900/70 max-w-2xl">Выберите ближайший салон или точку самовывоза. На карте отмечены адреса и режим работы.</p>
+        </div>
+        <div class="card-white px-4 py-3">
+          <div class="text-[12px] text-slate-900/60">Для заказа</div>
+          <a class="font-semibold text-blue-700 hover:text-blue-800" href="tel:+79991234567">+7 (999) 123‑45‑67</a>
+        </div>
+      </div>
+
+      <div class="mt-6 grid lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-8">
+          <div class="card-white p-3">
+            <div id="map" class="w-full h-[420px]"></div>
+          </div>
+        </div>
+        <div class="lg:col-span-4">
+          <div class="card p-6">
+            <div class="display text-[18px]">Список пунктов</div>
+            <div id="locationsList" class="mt-4 grid gap-3"></div>
+            <div class="mt-4 text-[13px] text-slate-900/70">Нажмите на пункт — карта приблизит и откроет метку.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REVIEWS -->
+    <section id="page-reviews" class="page" data-page="reviews">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div>
+          <h1 class="display text-[28px] sm:text-[36px]">Отзывы</h1>
+          <p class="mt-2 text-slate-900/70 max-w-2xl">Реальные впечатления. Можно добавить свой отзыв — он сохранится в вашем браузере.</p>
+        </div>
+        <a class="btn btn-primary focus-ring" href="#reviewForm">Оставить отзыв</a>
+      </div>
+
+      <div class="mt-6 grid lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7">
+          <div class="card-white p-6">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-[12px] text-slate-900/60">Средняя оценка</div>
+                <div class="display text-[26px]" id="avgRating">—</div>
+              </div>
+              <div class="pill px-4 py-3">
+                <div class="text-[12px] text-slate-900/60">Контакт для заказа</div>
+                <div class="font-semibold"><a class="text-blue-700 hover:text-blue-800" href="tel:+79991234567">+7 (999) 123‑45‑67</a></div>
+              </div>
+            </div>
+            <div id="reviewsList" class="mt-5 grid gap-4"></div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5" id="reviewForm">
+          <div class="card p-6">
+            <h2 class="display text-[20px]">Ваш отзыв</h2>
+            <form id="reviewFormEl" class="mt-4 grid gap-4">
+              <label>
+                <div class="text-[12px] font-semibold text-slate-900/60">Имя</div>
+                <input required id="reviewName" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring" placeholder="Как к вам обращаться" />
+              </label>
+              <label>
+                <div class="text-[12px] font-semibold text-slate-900/60">Оценка</div>
+                <select required id="reviewRating" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring">
+                  <option value="5">5 — идеально</option>
+                  <option value="4">4 — очень хорошо</option>
+                  <option value="3">3 — нормально</option>
+                  <option value="2">2 — есть проблемы</option>
+                  <option value="1">1 — плохо</option>
+                </select>
+              </label>
+              <label>
+                <div class="text-[12px] font-semibold text-slate-900/60">Текст</div>
+                <textarea required id="reviewText" class="mt-1 w-full pill px-4 py-3 bg-white/60 focus-ring" rows="4" placeholder="Что понравилось?"></textarea>
+              </label>
+              <button class="btn btn-primary focus-ring" type="submit">Опубликовать</button>
+              <button class="btn btn-ghost focus-ring" type="button" id="resetReviewsBtn">Сбросить мои отзывы</button>
+            </form>
+            <p class="mt-4 text-[12px] text-slate-900/60">Отзывы хранятся локально (localStorage), без отправки на сервер.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="mt-10">
+      <div class="glass rounded-[26px] px-6 py-6 border border-white/40">
+        <div class="grid lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-5">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-white">BB</span>
+              <div>
+                <div class="display">BlueBeige Flowers</div>
+                <div class="text-[12px] text-slate-900/60">Бежево‑синяя эстетика · доставка цветов</div>
+              </div>
+            </div>
+            <div class="mt-3 text-[13px] text-slate-900/70">Телефон для заказа: <a class="font-semibold text-blue-700 hover:text-blue-800" href="tel:+79991234567">+7 (999) 123‑45‑67</a></div>
+            <div class="mt-1 text-[12px] text-slate-900/55">Демо‑сайт: все страницы работают в рамках одного файла (SPA).</div>
+          </div>
+          <div class="lg:col-span-7 grid sm:grid-cols-3 gap-4">
+            <div class="card-white p-4">
+              <div class="text-[12px] font-semibold text-slate-900/60">Навигация</div>
+              <div class="mt-2 grid gap-1 text-[13px]">
+                <a class="hover:text-blue-800" href="#/" data-link>Главная</a>
+                <a class="hover:text-blue-800" href="#/catalog" data-link>Каталог</a>
+                <a class="hover:text-blue-800" href="#/order" data-link>Заказать</a>
+                <a class="hover:text-blue-800" href="#/map" data-link>Пункты на карте</a>
+                <a class="hover:text-blue-800" href="#/reviews" data-link>Отзывы</a>
+              </div>
+            </div>
+            <div class="card-white p-4">
+              <div class="text-[12px] font-semibold text-slate-900/60">Режим</div>
+              <div class="mt-2 text-[13px] text-slate-900/75">
+                Ежедневно: 09:00–21:00<br/>
+                Доставка: 10:00–22:00
+              </div>
+            </div>
+            <div class="card-white p-4">
+              <div class="text-[12px] font-semibold text-slate-900/60">Соцсети</div>
+              <div class="mt-2 text-[13px] text-slate-900/75">
+                Instagram / VK / Telegram<br/>
+                <span class="text-slate-900/50">(заглушки)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-white/40 text-[12px] text-slate-900/55 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+          <div>© <span id="year"></span> BlueBeige Flowers</div>
+          <div>Сделано на HTML + Tailwind + JS · карта Leaflet</div>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Product modal -->
+  <div id="modalOverlay" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"></div>
+    <div class="relative mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 h-full flex items-center">
+      <div class="card-white w-full p-5 sm:p-6 shadow-[0_30px_100px_rgba(8,20,47,0.35)]">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-[12px] font-semibold text-slate-900/60" id="modalTag">Категория</div>
+            <div class="display text-[20px] sm:text-[24px]" id="modalTitle">Букет</div>
+          </div>
+          <button id="modalClose" class="btn btn-ghost px-3 py-2 focus-ring" aria-label="Закрыть">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="mt-4 grid md:grid-cols-12 gap-5">
+          <div class="md:col-span-7">
+            <div class="rounded-[18px] overflow-hidden border border-slate-900/10">
+              <img id="modalImg" class="w-full h-[280px] md:h-[330px] object-cover" alt="Фото букета" src="" />
+            </div>
+          </div>
+          <div class="md:col-span-5">
+            <div class="pill px-4 py-3">
+              <div class="text-[12px] text-slate-900/60">Цена</div>
+              <div class="display text-[22px]" id="modalPrice">—</div>
+            </div>
+            <div class="mt-3 card-white px-4 py-3">
+              <div class="text-[12px] text-slate-900/60">Описание</div>
+              <div class="text-[13px] text-slate-900/75 mt-1" id="modalDesc">—</div>
+            </div>
+            <div class="mt-3 grid gap-2" id="modalBadges"></div>
+            <div class="mt-4 flex flex-col sm:flex-row gap-3">
+              <a id="modalOrderBtn" class="btn btn-primary focus-ring inline-flex items-center justify-center" href="#/order" data-link>Заказать</a>
+              <a class="btn btn-ghost focus-ring inline-flex items-center justify-center" href="tel:+79991234567">Позвонить</a>
+            </div>
+            <div class="mt-3 text-[12px] text-slate-900/55">Фото: Unsplash (демо). Состав может немного отличаться по сезону.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Data ----------
+    const PHONE = "+7 (999) 123-45-67";
+
+    const products = [
+      {
+        id: "blue-whisper",
+        title: "Blue Whisper",
+        price: 3490,
+        tags: ["blue", "gift"],
+        badge: "синий акцент",
+        desc: "Нюдовые розы + прохладные синие акценты. Минималистичная упаковка, очень 'design'.",
+        img: "https://images.unsplash.com/photo-1526045478516-99145907023c?auto=format&fit=crop&w=1400&q=80"
+      },
+      {
+        id: "nude-cloud",
+        title: "Nude Cloud",
+        price: 2890,
+        tags: ["nude", "gift"],
+        badge: "нюд",
+        desc: "Лёгкий, воздушный букет в бежево-кремовой гамме: мягкий подарок без лишнего шума.",
+        img: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=1400&q=80"
+      },
+      {
+        id: "blue-roses",
+        title: "Blue Roses",
+        price: 4190,
+        tags: ["roses", "blue"],
+        badge: "розы",
+        desc: "Розы с графичными синими деталями и чистой композицией. Эффектный акцент.",
+        img: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1400&q=80"
+      },
+      {
+        id: "wedding-nude",
+        title: "Wedding Nude",
+        price: 5290,
+        tags: ["wedding", "nude"],
+        badge: "свадьба",
+        desc: "Спокойная свадебная палитра: кремовый, беж и чуть зелени. Сдержанно и очень красиво.",
+        img: "https://images.unsplash.com/photo-1487070183336-b863922373d4?auto=format&fit=crop&w=1400&q=80"
+      },
+      {
+        id: "gift-set",
+        title: "Gift Set",
+        price: 4590,
+        tags: ["gift"],
+        badge: "подарок",
+        desc: "Букет + открытка + фирменная лента. Подходит, когда хочется сделать 'вау' быстро.",
+        img: "https://images.unsplash.com/photo-1525310072745-f49212b5ac6d?auto=format&fit=crop&w=1400&q=80"
+      },
+      {
+        id: "mono-roses",
+        title: "Mono Roses",
+        price: 3790,
+        tags: ["roses", "nude"],
+        badge: "моно",
+        desc: "Моно-букет из роз — чистая форма и идеальная геометрия. В любимых нюдах.",
+        img: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1400&q=80"
+      }
+    ];
+
+    const locations = [
+      { id: "center", name: "Салон · Центр", address: "ул. Тверская, 12", hours: "10:00–21:00", coords: [55.7651, 37.6069] },
+      { id: "park", name: "Салон · Парк", address: "ул. Большая Дмитровка, 9", hours: "10:00–21:00", coords: [55.7636, 37.6127] },
+      { id: "pickup", name: "Самовывоз · Сити", address: "Пресненская наб., 10", hours: "09:00–20:00", coords: [55.7498, 37.5397] }
+    ];
+
+    // ---------- Helpers ----------
+    const fmtPrice = (n) => new Intl.NumberFormat('ru-RU').format(n) + " ₽";
+    const qs = (s, el=document) => el.querySelector(s);
+    const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+    // ---------- SPA Router ----------
+    const pages = ["home","catalog","order","map","reviews"];
+
+    function getRoute(){
+      const hash = (location.hash || "#/ ").replace("#", "");
+      const clean = hash.trim();
+      if (clean === "/" || clean === "" || clean === "/ ") return "home";
+      const part = clean.replace(/^\//, "").split("?")[0];
+      return pages.includes(part) ? part : "home";
+    }
+
+    function setActiveNav(route){
+      qsa('[data-route]').forEach(a => a.removeAttribute('aria-current'));
+      qsa(`[data-route="${route}"]`).forEach(a => a.setAttribute('aria-current','page'));
+    }
+
+    function showPage(route){
+      qsa('.page').forEach(p => p.classList.remove('active'));
+      const target = qs(`#page-${route}`);
+      if (target) target.classList.add('active');
+      setActiveNav(route);
+
+      // Close mobile menu
+      qs('#mobileMenu').classList.add('hidden');
+
+      // On page enter hooks
+      if(route === 'map') initMapOnce();
+      if(route === 'catalog') renderCatalog();
+      if(route === 'reviews') renderReviews();
+      if(route === 'order') syncOrderTotal();
+
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    window.addEventListener('hashchange', () => showPage(getRoute()));
+
+    // ---------- UI: Mobile menu ----------
+    qs('#menuBtn').addEventListener('click', () => {
+      qs('#mobileMenu').classList.toggle('hidden');
+    });
+
+    // ---------- Render: Home popular ----------
+    function productCard(p, {compact=false}={}){
+      const wrap = document.createElement('div');
+      wrap.className = "card-white p-4 hover:shadow-[0_18px_60px_rgba(8,20,47,0.16)] transition-shadow";
+      wrap.innerHTML = `
+        <button class="w-full text-left" data-open-product="${p.id}">
+          <div class="rounded-[16px] overflow-hidden border border-slate-900/10">
+            <img class="w-full ${compact ? 'h-[140px]' : 'h-[190px]'} object-cover" alt="${p.title}" src="${p.img}" loading="lazy" />
+          </div>
+          <div class="mt-3 flex items-center justify-between gap-2">
+            <div class="display text-[14px]">${p.title}</div>
+            <span class="pill px-2 py-1 text-[11px] font-semibold">${p.badge}</span>
+          </div>
+          <div class="mt-1 text-[13px] text-slate-900/75">${fmtPrice(p.price)}</div>
+        </button>
+        <div class="mt-3 flex gap-2">
+          <a class="btn btn-primary px-4 py-2 text-[13px] focus-ring" href="#/order" data-link data-prefill="${p.id}">Заказать</a>
+          <button class="btn btn-ghost px-4 py-2 text-[13px] focus-ring" data-open-product="${p.id}">Подробнее</button>
+        </div>
+      `;
+      return wrap;
+    }
+
+    function renderHomePopular(){
+      const el = qs('#homePopular');
+      el.innerHTML = '';
+      products.slice(0,3).forEach(p => el.appendChild(productCard(p, {compact:true})));
+    }
+
+    // ---------- Catalog ----------
+    function renderCatalog(){
+      const q = (qs('#searchInput').value || '').trim().toLowerCase();
+      const tag = qs('#tagFilter').value;
+      const grid = qs('#catalogGrid');
+      grid.innerHTML = '';
+
+      const list = products.filter(p => {
+        const matchQ = !q || (p.title + ' ' + p.desc + ' ' + p.tags.join(' ')).toLowerCase().includes(q);
+        const matchT = tag === 'all' || p.tags.includes(tag);
+        return matchQ && matchT;
+      });
+
+      if(!list.length){
+        const empty = document.createElement('div');
+        empty.className = 'card-white p-6 sm:col-span-2 lg:col-span-3';
+        empty.innerHTML = `<div class="display text-[18px]">Ничего не найдено</div><div class="mt-2 text-[13px] text-slate-900/70">Попробуйте другой запрос или снимите фильтр.</div>`;
+        grid.appendChild(empty);
+        return;
+      }
+
+      list.forEach(p => grid.appendChild(productCard(p)));
+    }
+
+    qs('#searchInput').addEventListener('input', () => renderCatalog());
+    qs('#tagFilter').addEventListener('change', () => renderCatalog());
+
+    // ---------- Modal ----------
+    function openModal(productId){
+      const p = products.find(x => x.id === productId);
+      if(!p) return;
+      qs('#modalTag').textContent = p.badge;
+      qs('#modalTitle').textContent = p.title;
+      qs('#modalImg').src = p.img;
+      qs('#modalPrice').textContent = fmtPrice(p.price);
+      qs('#modalDesc').textContent = p.desc;
+
+      const badges = qs('#modalBadges');
+      badges.innerHTML = '';
+      p.tags.forEach(t => {
+        const b = document.createElement('div');
+        b.className = 'pill px-4 py-3';
+        b.innerHTML = `<div class="text-[12px] text-slate-900/60">Тег</div><div class="font-semibold">${t}</div>`;
+        badges.appendChild(b);
+      });
+
+      const orderBtn = qs('#modalOrderBtn');
+      orderBtn.setAttribute('data-prefill', p.id);
+      qs('#modalOverlay').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(){
+      qs('#modalOverlay').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    qs('#modalClose').addEventListener('click', closeModal);
+    qs('#modalOverlay').addEventListener('click', (e) => {
+      if(e.target === qs('#modalOverlay') || e.target === qs('#modalOverlay').firstElementChild) closeModal();
+    });
+    window.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && !qs('#modalOverlay').classList.contains('hidden')) closeModal();
+    });
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-open-product]');
+      if(btn){
+        openModal(btn.getAttribute('data-open-product'));
+      }
+    });
+
+    // ---------- Order ----------
+    function fillBouquetSelect(){
+      const sel = qs('#bouquetSelect');
+      products.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.title} — ${fmtPrice(p.price)}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function setOrderPreview(productId){
+      const p = products.find(x => x.id === productId);
+      if(p){
+        qs('#orderPreviewImg').src = p.img;
+      }
+    }
+
+    function syncOrderTotal(){
+      const id = qs('#bouquetSelect').value;
+      const p = products.find(x => x.id === id);
+      qs('#orderTotal').textContent = p ? fmtPrice(p.price) : '—';
+      if(p) setOrderPreview(p.id);
+    }
+
+    qs('#bouquetSelect').addEventListener('change', syncOrderTotal);
+
+    function showToast(text){
+      const t = qs('#toast');
+      qs('#toastText').textContent = text;
+      t.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => t.classList.add('hidden'), 3500);
+    }
+
+    function buildOrderText(){
+      const id = qs('#bouquetSelect').value;
+      const p = products.find(x => x.id === id);
+      const lines = [
+        'Заказ цветов (BlueBeige)',
+        `Букет: ${p ? p.title : '—'}`,
+        `Цена: ${p ? fmtPrice(p.price) : '—'}`,
+        `Имя: ${qs('#customerName').value}`,
+        `Телефон: ${qs('#customerPhone').value}`,
+        `Адрес: ${qs('#deliveryAddress').value}`,
+        `Дата: ${qs('#deliveryDate').value}`,
+        `Время: ${qs('#deliveryTime').value}`,
+        `Открытка: ${qs('#cardText').value || '—'}`,
+        `Комментарий: ${qs('#commentText').value || '—'}`
+      ];
+      return lines.join('\n');
+    }
+
+    qs('#copyOrderBtn').addEventListener('click', async () => {
+      try{
+        const text = buildOrderText();
+        await navigator.clipboard.writeText(text);
+        showToast('Заказ скопирован — можно отправить в мессенджер.');
+      }catch{
+        showToast('Не удалось скопировать. Выделите и скопируйте вручную.');
+      }
+    });
+
+    qs('#orderForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = qs('#bouquetSelect').value;
+      if(!id){
+        showToast('Выберите букет, пожалуйста.');
+        qs('#bouquetSelect').focus();
+        return;
+      }
+      showToast('Спасибо! Демоверсия: заказ сформирован. Мы бы перезвонили в течение 5 минут.');
+    });
+
+    // Prefill order from any button with data-prefill
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('[data-link]');
+      if(!a) return;
+      const prefill = a.getAttribute('data-prefill');
+      if(prefill){
+        // store for after route navigation
+        sessionStorage.setItem('prefillBouquet', prefill);
+      }
+    });
+
+    function applyPrefillIfAny(){
+      const p = sessionStorage.getItem('prefillBouquet');
+      if(p){
+        qs('#bouquetSelect').value = p;
+        syncOrderTotal();
+        sessionStorage.removeItem('prefillBouquet');
+      }
+    }
+
+    // ---------- Reviews (localStorage) ----------
+    const REV_KEY = 'bb_reviews_v1';
+
+    const seedReviews = [
+      { name: 'Мария', rating: 5, text: 'Очень стильный букет, упаковка минималистичная, как и хотела. Прислали фото перед доставкой.', date: '2025-10-03' },
+      { name: 'Илья', rating: 5, text: 'Заказал подруге, привезли вовремя, реально красивее, чем на фото. Спасибо!', date: '2025-10-18' },
+      { name: 'Алина', rating: 4, text: 'Цвета идеальные, сервис приятный. Хотелось бы чуть больше вариантов по бюджету до 2500.', date: '2025-11-02' }
+    ];
+
+    function loadReviews(){
+      const raw = localStorage.getItem(REV_KEY);
+      if(!raw){
+        localStorage.setItem(REV_KEY, JSON.stringify(seedReviews));
+        return [...seedReviews];
+      }
+      try{ return JSON.parse(raw) || []; }catch{ return [...seedReviews]; }
+    }
+
+    function saveReviews(list){
+      localStorage.setItem(REV_KEY, JSON.stringify(list));
+    }
+
+    function stars(n){
+      const full = '★'.repeat(n);
+      const empty = '☆'.repeat(5-n);
+      return `<span class="text-blue-700">${full}</span><span class="text-slate-900/30">${empty}</span>`;
+    }
+
+    function renderReviews(){
+      const list = loadReviews().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+      const wrap = qs('#reviewsList');
+      wrap.innerHTML = '';
+
+      const avg = list.length ? (list.reduce((s,r)=>s+Number(r.rating||0),0)/list.length).toFixed(1) : '—';
+      qs('#avgRating').textContent = list.length ? `${avg} / 5` : '—';
+
+      list.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'card-white p-5';
+        item.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="font-semibold">${escapeHtml(r.name || 'Гость')}</div>
+              <div class="text-[12px] text-slate-900/60 mt-0.5">${escapeHtml(r.date || '')}</div>
+            </div>
+            <div class="text-[14px]" aria-label="Оценка ${r.rating} из 5">${stars(Number(r.rating||0))}</div>
+          </div>
+          <div class="mt-3 text-[13px] text-slate-900/75 leading-relaxed">${escapeHtml(r.text || '')}</div>
+        `;
+        wrap.appendChild(item);
+      });
+    }
+
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#039;');
+    }
+
+    qs('#reviewFormEl').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const list = loadReviews();
+      const now = new Date();
+      const iso = now.toISOString().slice(0,10);
+      list.push({
+        name: qs('#reviewName').value.trim(),
+        rating: Number(qs('#reviewRating').value),
+        text: qs('#reviewText').value.trim(),
+        date: iso
+      });
+      saveReviews(list);
+      qs('#reviewFormEl').reset();
+      renderReviews();
+      showToast('Отзыв добавлен. Спасибо!');
+    });
+
+    qs('#resetReviewsBtn').addEventListener('click', () => {
+      localStorage.removeItem(REV_KEY);
+      renderReviews();
+      showToast('Локальные отзывы сброшены.');
+    });
+
+    // ---------- Map (Leaflet) ----------
+    let mapInited = false;
+    let map, markersById = new Map();
+
+    function initMapOnce(){
+      if(mapInited) return;
+      mapInited = true;
+
+      map = L.map('map', { scrollWheelZoom: false });
+      const center = [55.7608, 37.6186]; // Moscow center
+      map.setView(center, 12);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:18px;height:18px;border-radius:999px;background:linear-gradient(135deg,#2458FF,#1D4ED8);box-shadow:0 10px 24px rgba(36,88,255,0.45);border:2px solid rgba(255,255,255,0.9)"></div>`,
+        iconSize: [18,18],
+        iconAnchor: [9,9]
+      });
+
+      locations.forEach(loc => {
+        const m = L.marker(loc.coords, { icon }).addTo(map);
+        m.bindPopup(`<div style="font-family:Manrope,system-ui;">
+          <div style="font-weight:800;letter-spacing:-0.02em">${escapeHtml(loc.name)}</div>
+          <div style="opacity:.75;margin-top:2px">${escapeHtml(loc.address)}</div>
+          <div style="opacity:.75;margin-top:2px">${escapeHtml(loc.hours)}</div>
+        </div>`);
+        markersById.set(loc.id, m);
+      });
+
+      renderLocationsList();
+      setTimeout(() => map.invalidateSize(), 150);
+    }
+
+    function renderLocationsList(){
+      const wrap = qs('#locationsList');
+      wrap.innerHTML = '';
+      locations.forEach(loc => {
+        const item = document.createElement('button');
+        item.className = 'card-white p-4 text-left hover:shadow-[0_18px_60px_rgba(8,20,47,0.14)] transition-shadow focus-ring';
+        item.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="font-semibold">${escapeHtml(loc.name)}</div>
+              <div class="text-[13px] text-slate-900/70 mt-1">${escapeHtml(loc.address)}</div>
+              <div class="text-[12px] text-slate-900/55 mt-1">${escapeHtml(loc.hours)}</div>
+            </div>
+            <span class="pill px-3 py-1 text-[12px] font-semibold">на карте</span>
+          </div>
+        `;
+        item.addEventListener('click', () => {
+          const m = markersById.get(loc.id);
+          if(!m) return;
+          map.setView(loc.coords, 14, { animate: true });
+          m.openPopup();
+        });
+        wrap.appendChild(item);
+      });
+    }
+
+    // ---------- Link handling ----------
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[data-link]');
+      if(!a) return;
+      // allow normal hash routing; just apply prefill later
+      setTimeout(() => {
+        if(getRoute() === 'order') applyPrefillIfAny();
+      }, 0);
+    });
+
+    // ---------- Init ----------
+    function init(){
+      qs('#year').textContent = new Date().getFullYear();
+      renderHomePopular();
+      fillBouquetSelect();
+      renderCatalog();
+      renderReviews();
+
+      // default date
+      const d = new Date();
+      const iso = d.toISOString().slice(0,10);
+      qs('#deliveryDate').value = iso;
+
+      showPage(getRoute());
+      // prefill if direct open
+      if(getRoute() === 'order') applyPrefillIfAny();
+    }
+
+    init();
+  </script>
+</body>
+</html>
